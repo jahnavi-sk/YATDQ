@@ -1,0 +1,15 @@
+
+producer:
+  bootstrap.servers: "localhost:9092"
+  client.id: "python-kafka-producer"
+  acks: "all"
+  retries: 3
+  retry.backoff.ms: 1000
+
+consumer:
+  bootstrap.servers: "localhost:9092"
+  auto.offset.reset: "earliest"
+  enable.auto.commit: true
+  max.poll.interval.ms: 300000
+  session.timeout.ms: 10000
+  heartbeat.interval.ms: 3000
