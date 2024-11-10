@@ -1,126 +1,95 @@
-
-from typing import Callable, Optional, Any, Dict
-import json
+from confluent_kafka import Producer, Consumer
+import yaml
 import logging
-from src.client import KafkaClient
-from datetime import datetime
+from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
-class MessageProcessor:
-    """Handle message processing and transformation."""
-    
-    @staticmethod
-    def serialize_message(data: Dict[str, Any]) -> bytes:
-        """Serialize message data to JSON bytes."""
-        try:
-            data['timestamp'] = datetime.utcnow().isoformat()
-            return json.dumps(data).encode('utf-8')
-        except Exception as e:
-            logger.error(f"Failed to serialize message: {str(e)}")
-            raise
-
-    @staticmethod
-    def deserialize_message(message: bytes) -> Dict[str, Any]:
-        """Deserialize message bytes to dictionary."""
-        try:
-            return json.loads(message.decode('utf-8'))
-        except Exception as e:
-            logger.error(f"Failed to deserialize message: {str(e)}")
-            raise
-
-class KafkaHandler:
-    """High-level Kafka operations handler."""
+class KafkaClient:
+    """Kafka client for handling message production and consumption."""
     
     def __init__(self, config_path: str = "config/kafka_config.yml"):
-        """Initialize KafkaHandler with a KafkaClient."""
-        self.client = KafkaClient(config_path)
-        self.processor = MessageProcessor()
+        """Initialize Kafka client with configuration from YAML file."""
+        self.config = self._load_config(config_path)
+        self.producer: Optional[Producer] = None
+        self.consumer: Optional[Consumer] = None
 
-    def publish_message(self, topic: str, data: Dict[str, Any], key: Optional[str] = None) -> None:
-        """Publish a message to a Kafka topic.
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """Load Kafka configuration from YAML file."""
+        try:
+            with open(config_path, 'r') as file:
+                return yaml.safe_load(file)
+        except Exception as e:
+            logger.error(f"Failed to load config from {config_path}: {str(e)}")
+            raise
+
+    def produce_message(self, topic: str, value: bytes, key: Optional[bytes] = None) -> None:
+        """Produce a message to a Kafka topic.
         
         Args:
             topic (str): Target topic
-            data (Dict[str, Any]): Message data
-            key (Optional[str]): Message key
+            value (bytes): Message value
+            key (Optional[bytes]): Message key
         """
+        if not self.producer:
+            self.producer = Producer(self.config.get('producer', {}))
+
         try:
-            serialized_data = self.processor.serialize_message(data)
-            serialized_key = key.encode('utf-8') if key else None
-            self.client.produce_message(topic, serialized_data, serialized_key)
-            logger.info(f"Successfully published message to topic: {topic}")
+            self.producer.produce(topic, value=value, key=key)
+            self.producer.flush()
         except Exception as e:
-            logger.error(f"Failed to publish message: {str(e)}")
+            logger.error(f"Failed to produce message: {str(e)}")
             raise
 
-    def process_messages(self, 
-                        group_id: str, 
-                        topics: list[str], 
-                        handler_func: Callable[[Dict[str, Any]], None],
-                        error_handler: Optional[Callable[[Exception], None]] = None):
-        """Process messages from specified topics with a handler function.
+    def create_consumer(self, group_id: str, topics: List[str]) -> None:
+        """Create a Kafka consumer and subscribe to topics.
         
         Args:
             group_id (str): Consumer group ID
             topics (list[str]): List of topics to subscribe to
-            handler_func (Callable): Function to process each message
-            error_handler (Optional[Callable]): Function to handle errors
         """
+        consumer_config = self.config.get('consumer', {})
+        consumer_config['group.id'] = group_id
+        
         try:
-            self.client.create_consumer(group_id, topics)
-            logger.info(f"Started consuming from topics: {topics}")
-            
-            for message in self.client.consume_messages():
-                try:
-                    data = self.processor.deserialize_message(message.value())
-                    handler_func(data)
-                except Exception as e:
-                    logger.error(f"Error processing message: {str(e)}")
-                    if error_handler:
-                        error_handler(e)
-                    else:
-                        raise
-                    
+            self.consumer = Consumer(consumer_config)
+            self.consumer.subscribe(topics)
         except Exception as e:
-            logger.error(f"Error in message processing loop: {str(e)}")
+            logger.error(f"Failed to create consumer: {str(e)}")
             raise
-        finally:
-            self.close()
+
+    def consume_messages(self, timeout: float = 1.0):
+        """Consume messages from subscribed topics.
+        
+        Args:
+            timeout (float): Maximum time to block waiting for message
+            
+        Yields:
+            Message: Consumed message
+        """
+        if not self.consumer:
+            raise RuntimeError("Consumer not initialized. Call create_consumer first.")
+
+        try:
+            while True:
+                msg = self.consumer.poll(timeout)
+                if msg is None:
+                    continue
+                if msg.error():
+                    logger.error(f"Consumer error: {msg.error()}")
+                    continue
+                yield msg
+        except Exception as e:
+            logger.error(f"Error consuming messages: {str(e)}")
+            raise
 
     def close(self):
         """Clean up resources."""
-        self.client.close()
-
-class BatchProcessor(KafkaHandler):
-    """Handle batch processing of messages."""
-    
-    def __init__(self, batch_size: int = 100, *args, **kwargs):
-        """Initialize BatchProcessor with batch size."""
-        super().__init__(*args, **kwargs)
-        self.batch_size = batch_size
-        self.current_batch: list[Dict[str, Any]] = []
-
-    def process_batch(self, 
-                     group_id: str, 
-                     topics: list[str], 
-                     batch_handler: Callable[[list[Dict[str, Any]]], None]):
-        """Process messages in batches.
+        if self.producer:
+            self.producer.flush()
+            self.producer.close()
+            self.producer = None
         
-        Args:
-            group_id (str): Consumer group ID
-            topics (list[str]): List of topics to subscribe to
-            batch_handler (Callable): Function to process each batch
-        """
-        def handle_message(message: Dict[str, Any]):
-            self.current_batch.append(message)
-            if len(self.current_batch) >= self.batch_size:
-                batch_handler(self.current_batch)
-                self.current_batch = []
-
-        try:
-            self.process_messages(group_id, topics, handle_message)
-        finally:
-            # Process any remaining messages in the batch
-            if self.current_batch:
-                batch_handler(self.current_batch)
+        if self.consumer:
+            self.consumer.close()
+            self.consumer = None

@@ -8,27 +8,59 @@ from typing import Dict, Any, List, Callable
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class KafkaClient:
+class KafkaWorker:
     def __init__(self, config_path: str):
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+        """Initialize Kafka worker with configuration from YAML file.
         
+        Args:
+            config_path (str): Path to Kafka configuration YAML file
+        """
+        self.config = self._load_config(config_path)
         self.producer = None
         self.consumer = None
         self.is_running = False
+        self.worker_id = None
 
-    def setup_producer(self) -> None:
-        """Initialize the Kafka producer"""
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """Load configuration from YAML file."""
+        try:
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            logger.error(f"Failed to load config: {e}")
+            raise
+
+    def initialize(self, worker_id: str, task_topic: str, result_topic: str) -> None:
+        """Initialize worker with Kafka connections.
+        
+        Args:
+            worker_id (str): Unique identifier for this worker
+            task_topic (str): Topic to consume tasks from
+            result_topic (str): Topic to produce results to
+        """
+        self.worker_id = worker_id
+        self._setup_producer()
+        self._setup_consumer(worker_id, [task_topic])
+        self.result_topic = result_topic
+        logger.info(f"Worker {worker_id} initialized")
+
+    def _setup_producer(self) -> None:
+        """Initialize the Kafka producer for sending results."""
         producer_config = {
             'bootstrap.servers': self.config['kafka']['bootstrap_servers'],
-            'client.id': self.config['kafka'].get('client_id', 'python-producer'),
+            'client.id': f'worker-{self.worker_id}',
             'acks': 'all'
         }
         self.producer = Producer(producer_config)
-        logger.info("Kafka producer initialized")
+        logger.info("Producer initialized")
 
-    def setup_consumer(self, group_id: str, topics: List[str]) -> None:
-        """Initialize the Kafka consumer"""
+    def _setup_consumer(self, group_id: str, topics: List[str]) -> None:
+        """Initialize the Kafka consumer for receiving tasks.
+        
+        Args:
+            group_id (str): Consumer group ID for load balancing
+            topics (List[str]): Topics to subscribe to
+        """
         consumer_config = {
             'bootstrap.servers': self.config['kafka']['bootstrap_servers'],
             'group.id': group_id,
@@ -37,91 +69,108 @@ class KafkaClient:
         }
         self.consumer = Consumer(consumer_config)
         self.consumer.subscribe(topics)
-        logger.info(f"Kafka consumer subscribed to topics: {topics}")
+        logger.info(f"Consumer subscribed to topics: {topics}")
 
-    def produce_message(self, topic: str, message: Dict[str, Any], key: str = None) -> None:
-        """
-        Produce a message to a Kafka topic
+    def start_processing(self, task_handler: Callable[[Dict[str, Any]], Any]) -> None:
+        """Start processing tasks using the provided handler.
         
         Args:
-            topic: The topic to produce to
-            message: The message to produce (will be converted to JSON)
-            key: Optional message key
+            task_handler: Function to process tasks
         """
-        if not self.producer:
-            raise RuntimeError("Producer not initialized. Call setup_producer() first.")
-
-        try:
-            self.producer.produce(
-                topic=topic,
-                key=key.encode('utf-8') if key else None,
-                value=json.dumps(message).encode('utf-8'),
-                on_delivery=self._delivery_callback
-            )
-            # Trigger any available delivery callbacks
-            self.producer.poll(0)
-            
-        except KafkaException as e:
-            logger.error(f"Failed to produce message: {e}")
-            raise
-
-    def consume_messages(self, message_handler: Callable[[Dict[str, Any]], None], 
-                        timeout: float = 1.0) -> None:
-        """
-        Start consuming messages and process them with the provided handler
-        
-        Args:
-            message_handler: Callback function to process received messages
-            timeout: Timeout in seconds for consumer poll
-        """
-        if not self.consumer:
-            raise RuntimeError("Consumer not initialized. Call setup_consumer() first.")
+        if not self.consumer or not self.producer:
+            raise RuntimeError("Worker not initialized. Call initialize() first.")
 
         self.is_running = True
-        
+        logger.info(f"Worker {self.worker_id} started processing tasks")
+
         try:
             while self.is_running:
-                msg = self.consumer.poll(timeout)
-                
+                msg = self.consumer.poll(1.0)
+
                 if msg is None:
                     continue
-                
+
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
-                        logger.debug("Reached end of partition")
-                    else:
-                        logger.error(f"Consumer error: {msg.error()}")
+                        continue
+                    logger.error(f"Consumer error: {msg.error()}")
                     continue
 
                 try:
-                    value = json.loads(msg.value().decode('utf-8'))
-                    message_handler(value)
+                    # Parse task message
+                    task = json.loads(msg.value().decode('utf-8'))
+                    task_id = task.get('task-id')
+                    
+                    # Update task status to processing
+                    self._send_status_update(task_id, "processing")
+
+                    # Process task
+                    result = task_handler(task)
+
+                    # Send success result
+                    self._send_result(task_id, "success", result)
+                    
+                    # Commit offset after successful processing
                     self.consumer.commit(msg)
+                    
                 except Exception as e:
-                    logger.error(f"Error processing message: {e}")
+                    logger.error(f"Error processing task: {e}")
+                    if task_id:
+                        self._send_result(task_id, "failed", str(e))
 
         except KeyboardInterrupt:
-            logger.info("Stopping consumer...")
+            logger.info("Shutting down worker...")
         finally:
-            self.stop_consumer()
+            self.stop()
 
-    def stop_consumer(self) -> None:
-        """Stop the consumer and close the connection"""
-        self.is_running = False
-        if self.consumer:
-            self.consumer.close()
-            logger.info("Consumer closed")
+    def _send_status_update(self, task_id: str, status: str) -> None:
+        """Send task status update to result topic."""
+        try:
+            result = {
+                "task-id": task_id,
+                "status": status
+            }
+            self.producer.produce(
+                self.result_topic,
+                key=task_id.encode('utf-8'),
+                value=json.dumps(result).encode('utf-8'),
+                callback=self._delivery_callback
+            )
+            self.producer.poll(0)
+        except Exception as e:
+            logger.error(f"Failed to send status update: {e}")
+
+    def _send_result(self, task_id: str, status: str, result: Any) -> None:
+        """Send task result to result topic."""
+        try:
+            result_msg = {
+                "task-id": task_id,
+                "status": status,
+                "result": result
+            }
+            self.producer.produce(
+                self.result_topic,
+                key=task_id.encode('utf-8'),
+                value=json.dumps(result_msg).encode('utf-8'),
+                callback=self._delivery_callback
+            )
+            self.producer.poll(0)
+        except Exception as e:
+            logger.error(f"Failed to send result: {e}")
 
     def _delivery_callback(self, err, msg) -> None:
-        """Callback for producer delivery reports"""
+        """Callback for producer delivery reports."""
         if err:
             logger.error(f'Message delivery failed: {err}')
         else:
             logger.debug(f'Message delivered to {msg.topic()} [{msg.partition()}]')
 
-    def __del__(self):
-        """Cleanup when the object is destroyed"""
+    def stop(self) -> None:
+        """Stop the worker and clean up resources."""
+        self.is_running = False
         if self.consumer:
             self.consumer.close()
         if self.producer:
             self.producer.flush()
+            self.producer.close()
+        logger.info(f"Worker {self.worker_id} stopped")
