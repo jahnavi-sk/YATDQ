@@ -1,4 +1,4 @@
-*YADTQ (Yet Another Distributed Task Queue)
+[*YADTQ (Yet Another Distributed Task Queue)
 Overview
 YADTQ is a distributed task queue system designed to manage tasks across multiple worker nodes efficiently. Utilizing Kafka as the communication service, YADTQ facilitates asynchronous task processing, allowing clients to submit tasks and retrieve results seamlessly. This project aims to provide a scalable, fault-tolerant solution for executing tasks in a distributed environment.
 Table of Contents
@@ -83,3 +83,4 @@ Contributing
 Contributions are welcome! Please fork the repository and create a pull request for any changes or enhancements.
 License
 This project is licensed under the MIT License - see the LICENSE file for details. This README provides an overview of YADTQ, its goals, architecture, components, usage instructions, and contribution guidelines, making it easier for developers to understand and work with the project effectively.
+](https://www.perplexity.ai/search/give-me-a-project-structure-fo-wecAEGEiSf.9YUOaJraz5Q#4)
