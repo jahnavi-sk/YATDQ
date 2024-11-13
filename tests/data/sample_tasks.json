@@ -1,0 +1,42 @@
+[
+    {
+        "task-id": "add-task-1",
+        "task": "add",
+        "args": [10, 5, 3]
+    },
+    {
+        "task-id": "add-task-2",
+        "task": "add",
+        "args": [20, 30, 50]
+    },
+    {
+        "task-id": "subtract-task-1",
+        "task": "subtract",
+        "args": [100, 25, 10]
+    },
+    {
+        "task-id": "subtract-task-2",
+        "task": "subtract",
+        "args": [50, 20, 15]
+    },
+    {
+        "task-id": "add-task-3",
+        "task": "add",
+        "args": [1, 2, 3, 4, 5]
+    },
+    {
+        "task-id": "subtract-task-3",
+        "task": "subtract",
+        "args": [200, 50, 25, 10]
+    },
+    {
+        "task-id": "add-task-4",
+        "task": "add",
+        "args": [7, 14, 21]
+    },
+    {
+        "task-id": "subtract-task-4",
+        "task": "subtract",
+        "args": [90, 30, 15]
+    }
+]
