@@ -2,7 +2,7 @@ import time
 import logging
 import json
 from kafka import KafkaConsumer, KafkaProducer  # Make sure to install kafka-python
-from .task_handler import TaskHandler
+from worker.task_handler import TaskHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
