@@ -2,7 +2,7 @@
 
 # Set the Kafka broker address and topic names
 KAFKA_BROKER="localhost:9092"  # Change this to your Kafka broker address
-TASK_TOPIC="task_topic"          # Change this to your actual task topic name
+TASK_TOPIC="task_queue"          # Change this to your actual task topic name
 
 # Check if sample_tasks.json exists
 if [ ! -f "sample_tasks.json" ]; then
