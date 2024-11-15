@@ -7,7 +7,9 @@ class Client:
     def __init__(self):
         # Initialize Kafka broker and result backend
         self.kafka_broker = KafkaBroker()
+        #self.result_backend = ResultBackend()
         self.result_backend = ResultBackend()
+
 
     def submit_task(self, task_name, args):
         """

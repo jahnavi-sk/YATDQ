@@ -70,5 +70,40 @@ if __name__ == "__main__":
     result = result_backend.get_result(task_id)
     print(f"Retrieved result: {result}")
 
+
     # Close the backend
     result_backend.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
