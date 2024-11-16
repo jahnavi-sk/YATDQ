@@ -2,7 +2,7 @@
 
 # Set the Kafka broker address and topic names
 KAFKA_BROKER="localhost:9092"  # Change this to your Kafka broker address
-TASK_TOPIC="task_queue"          # Change this to your actual task topic name
+TASK_TOPIC="task_queue"         # Change this to your actual task topic name
 
 # Check if sample_tasks.json exists
 if [ ! -f "sample_tasks.json" ]; then
@@ -13,30 +13,32 @@ fi
 # Activate the Python virtual environment if needed
 # source /path/to/your/venv/bin/activate
 
-# Run the Python script to send tasks to Kafka
-python - <<EOF
+# Set PYTHONPATH to include the root directory of the project (parent directory of client and core)
+export PYTHONPATH=$(dirname "$(pwd)"):$PYTHONPATH
+
+# Submit tasks via python3 -m
+python3 - <<EOF
 import json
-from kafka import KafkaProducer
+from client.client import Client  # Ensure the client module is imported correctly
+
+# Initialize the client
+client = Client()
 
 # Load tasks from the JSON file
 with open('sample_tasks.json', 'r') as f:
     tasks = json.load(f)
 
-# Initialize Kafka producer
-producer = KafkaProducer(
-    bootstrap_servers='${KAFKA_BROKER}',
-    value_serializer=lambda m: json.dumps(m).encode('utf-8')
-)
-
-# Send tasks to the Kafka topic
+# Submit each task
 for task in tasks:
-    producer.send('${TASK_TOPIC}', task)
+    task_name = task.get("task")
+    args = task.get("args")
+    if not task_name or args is None:
+        print(f"Skipping invalid task: {task}")
+        continue
+    task_id = client.submit_task(task_name, args)
+    print(f"Submitted task {task_name} with ID: {task_id}")
 
-producer.flush()
-print("All tasks have been sent to ${TASK_TOPIC}.")
 EOF
 
-# Optional: Deactivate the virtual environment if it was activated
-# deactivate
+echo "All tasks have been submitted."
 
-echo "Client script completed."
