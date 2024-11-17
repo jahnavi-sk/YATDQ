@@ -18,6 +18,11 @@
         "task-id": "4",
         "task": "subtract",
         "args": [20, 4]
+    },
+    {
+        "task-id": "5",
+        "task": "subtract",
+        "args": [7, 4]
     }
 ]
 

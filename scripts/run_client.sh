@@ -19,6 +19,7 @@ export PYTHONPATH=$(dirname "$(pwd)"):$PYTHONPATH
 # Submit tasks via python3 -m
 python3 - <<EOF
 import json
+import time
 from client.client import Client  # Ensure the client module is imported correctly
 
 # Initialize the client
@@ -27,6 +28,8 @@ client = Client()
 # Load tasks from the JSON file
 with open('sample_tasks.json', 'r') as f:
     tasks = json.load(f)
+
+submitted_task_ids = []  # List to store submitted task IDs
 
 # Submit each task
 for task in tasks:
@@ -37,7 +40,31 @@ for task in tasks:
         continue
     task_id = client.submit_task(task_name, args)
     print(f"Submitted task {task_name} with ID: {task_id}")
+    submitted_task_ids.append(task_id)  # Store the task ID
 
+print("\nFetching task results...")
+
+# Fetch task results
+all_results = {}
+while submitted_task_ids:
+    for task_id in submitted_task_ids[:]:  # Iterate over a copy of the list
+        result = client.result_backend.get_result(task_id)  # Fetch task result
+        if result is None:  # Skip tasks with no results
+            print(f"Task {task_id}: Result not available yet...")
+            continue
+
+        status = result.get("status")
+        if status in ["success", "failed"]:
+            print(f"Task {task_id}: {status}. Result: {result.get('result')}")
+            all_results[task_id] = result
+            submitted_task_ids.remove(task_id)  # Remove completed task from list
+        else:
+            print(f"Task {task_id}: {status}...")  # "queued" or "processing"
+
+    time.sleep(2)  # Polling interval
+
+print("\nFinal Results:")
+print(json.dumps(all_results, indent=4))
 EOF
 
 echo "All tasks have been submitted."
