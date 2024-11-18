@@ -15,14 +15,24 @@ class KafkaBroker:
             value_serializer=lambda v: json.dumps(v).encode('utf-8')  # Serialize JSON
         )
         
-        # Initialize the Kafka consumer
-        self.consumer = KafkaConsumer(
+        # Initialize the Kafka consumer for task queue
+        self.task_consumer = KafkaConsumer(
             'task_queue',  # Topic to consume from
             bootstrap_servers=KAFKA_BROKER_URL,
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),  # Deserialize JSON
             auto_offset_reset='earliest',  # Start from the earliest message
             group_id='task_consumers',  # Consumer group
             enable_auto_commit=True  # Automatically commit offsets
+        )
+
+        # Initialize the Kafka consumer for heartbeats
+        self.heartbeat_consumer = KafkaConsumer(
+            'worker_heartbeat',  # Topic for worker heartbeats
+            bootstrap_servers=KAFKA_BROKER_URL,
+            value_deserializer=lambda m: json.loads(m.decode('utf-8')),  # Deserialize JSON
+            auto_offset_reset='latest',  # Start from the latest message
+            group_id='heartbeat_monitor',  # Consumer group for monitoring
+            enable_auto_commit=True
         )
 
     def send_message(self, message):
@@ -39,41 +49,63 @@ class KafkaBroker:
         except Exception as e:
             logger.error(f"Failed to send message to Kafka: {e}")
 
-    def consume_messages(self):
+    def consume_task_messages(self):
         """
-        Consumes messages from the Kafka topic.
+        Consumes task messages from the Kafka topic.
 
         Yields:
-        - The consumed message.
+        - The consumed task message.
         """
         try:
-            for message in self.consumer:
-                logger.info(f"Message received from Kafka: {message.value}")
+            for message in self.task_consumer:
+                logger.info(f"Task message received from Kafka: {message.value}")
                 yield message.value
         except Exception as e:
-            logger.error(f"Failed to consume messages from Kafka: {e}")
+            logger.error(f"Failed to consume task messages from Kafka: {e}")
+
+    def consume_heartbeat_messages(self):
+        """
+        Consumes heartbeat messages from the Kafka topic.
+
+        Yields:
+        - The consumed heartbeat message.
+        """
+        try:
+            for message in self.heartbeat_consumer:
+                logger.info(f"Heartbeat message received: {message.value}")
+                yield message.value
+        except Exception as e:
+            logger.error(f"Failed to consume heartbeat messages: {e}")
 
     def close(self):
         """Close the producer and consumer connections."""
         self.producer.close()
-        self.consumer.close()
+        self.task_consumer.close()
+        self.heartbeat_consumer.close()
         logger.info("Kafka connections closed.")
 
 if __name__ == "__main__":
     # Example usage of KafkaBroker
     kafka_broker = KafkaBroker()
     
-    # Send a test message
-    test_message = {
+    # Send a test task message
+    test_task_message = {
         "task-id": "test-task-id",
         "task": "add",
         "args": [1, 2]
     }
-    kafka_broker.send_message(test_message)
-    
-    # Consume messages (this will run indefinitely)
+    kafka_broker.send_message(test_task_message)
+
+    # Consume task and heartbeat messages
     try:
-        for msg in kafka_broker.consume_messages():
-            print(f"Processed message: {msg}")
+        # Start a consumer loop for both task and heartbeat messages
+        for task_msg in kafka_broker.consume_task_messages():
+            print(f"Processed task message: {task_msg}")
+
+        # In a separate process/thread, consume heartbeat messages (example for testing)
+        for heartbeat_msg in kafka_broker.consume_heartbeat_messages():
+            print(f"Processed heartbeat message: {heartbeat_msg}")
+
     except KeyboardInterrupt:
         kafka_broker.close()
+
