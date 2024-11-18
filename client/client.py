@@ -2,6 +2,7 @@ import uuid
 import json
 from core.kafka_broker import KafkaBroker
 from core.result_backend import ResultBackend
+import time
 
 class Client:
     def __init__(self):
@@ -32,6 +33,9 @@ class Client:
             "args": args
         }
         
+        
+        self.result_backend.store_task(task_id, task)
+        
         # Send the task to the Kafka broker
         self.kafka_broker.send_message(task)
         
@@ -40,7 +44,7 @@ class Client:
         
         return task_id
 
-    def query_status(self, task_id):
+    '''def query_status(self, task_id):
         """
         Queries the status of a previously submitted task.
 
@@ -67,7 +71,46 @@ class Client:
         else:
             return {
                 "status": result['status']  # either "queued" or "processing"
-            }
+            }'''
+            
+    def query_status(self, task_id, timeout=3):
+        start_time = time.time()
+        while True:
+            result = self.result_backend.get_result(task_id)
+            status = result.get("status")
+
+            if status =="success":
+                return {
+                    "status": status,
+                    "result": result.get("result"),
+                }
+            elif status == "failed":
+                print(f"Task {task_id} failed. Retrying...")
+                self.result_backend.store_result(task_id, "failed")
+                self.resubmit_task(task_id)
+                
+            elif time.time() - start_time > timeout:
+                print(f"Task {task_id} timed out. Retrying...")
+                self.resubmit_task(task_id)
+                
+            
+                
+            else:
+                time.sleep(1)  # Poll every second
+
+    def resubmit_task(self, task_id):
+        task = self.result_backend.get_task(task_id)
+        #print("\nGIRL LOOK AT ME. IM TASK = ",task)
+        if task:
+            #logger.info(f"Resubmitting task: {task}")
+            #print("IM RE RUNNING")
+            print(f"Resubmitting task: {task}")
+            #self.result_backend.store_result(task_id, "queued")
+            self.kafka_broker.send_message(task)
+            self.result_backend.store_result(task_id, "queued")
+        else:
+            print(f"Task {task_id} could not be retrieved for retry.")
+            #logger.error(f"Cannot resubmit. Task {task_id} not found in ResultBackend.")
 
 if __name__ == "__main__":
     client = Client()
