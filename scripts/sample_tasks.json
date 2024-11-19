@@ -7,22 +7,22 @@
     {
         "task-id": "2",
         "task": "divide",
-        "args": [10, 0]
+        "args": [10, 2]
     },
     {
         "task-id": "3",
-        "task": "add",
-        "args": [6, 7]
+        "task": "subtract",
+        "args": [12, 7]
     },
     {
         "task-id": "4",
-        "task": "subtract",
+        "task": "multiply",
         "args": [20, 4]
     },
     {
         "task-id": "5",
         "task": "add",
-        "args": [19, 14]
+        "args": [10, -14]
     },
     {
         "task-id": "6",
@@ -32,12 +32,12 @@
     {
         "task-id": "7",
         "task": "subtract",
-        "args": [71, 41]
+        "args": [71, 41, 21]
     },
     {
         "task-id": "8",
         "task": "multiply",
-        "args": [9, 1]
+        "args": [9, 0]
     },
     {
         "task-id": "9",
@@ -47,7 +47,12 @@
     {
         "task-id": "10",
         "task": "divide",
-        "args": [7, 14]
+        "args": [7, 0]
+    },
+    {
+        "task-id": "11",
+        "task": "multiply",
+        "args": [7, 6,-5]
     }
 ]
 

@@ -45,9 +45,9 @@ class KafkaBroker:
         try:
             self.producer.send('task_queue1', message)
             self.producer.flush()  # Ensure all messages are sent
-            logger.info(f"Message sent to Kafka: {message}")
+            logger.info(f"Message sending to YATDQ: {message}")
         except Exception as e:
-            logger.error(f"Failed to send message to Kafka: {e}")
+            logger.error(f"Failed to send message to YATDQ: {e}")
 
     def consume_task_messages(self):
         """
@@ -58,10 +58,10 @@ class KafkaBroker:
         """
         try:
             for message in self.task_consumer:
-                logger.info(f"Task message received from Kafka: {message.value}")
+                logger.info(f"Task message receiving from YATDQ: {message.value}")
                 yield message.value
         except Exception as e:
-            logger.error(f"Failed to consume task messages from Kafka: {e}")
+            logger.error(f"Failed to consume task messages from YATDQ: {e}")
 
     def consume_heartbeat_messages(self):
         """
@@ -82,7 +82,7 @@ class KafkaBroker:
         self.producer.close()
         self.task_consumer.close()
         self.heartbeat_consumer.close()
-        logger.info("Kafka connections closed.")
+        logger.info("YATDQ connections closed.")
 
 if __name__ == "__main__":
     # Example usage of KafkaBroker

@@ -46,14 +46,21 @@ class TaskHandler:
                 logger.info(f"Task {task_id} completed successfully with result: {result}")
                 return {"status": "success", "task-id": task_id, "result": result}
             elif task_name == "divide":
+            
                 result = self.divide(*args)
-                logger.info(f"Task {task_id} completed successfully with result: {result}")
-                return {"status": "success", "task-id": task_id, "result": result}
+                #logger.info("\nTHIS IS THE RESULTTTTT,\n",result)
+                if(result!="Can't divide by 0"):
+                    logger.info(f"Task {task_id} completed successfully with result: {result}")
+                    return {"status": "success", "task-id": task_id, "result": result}
+                else:
+                    logger.info(f"Task {task_id} faced an error!")
+                    return {"status": "failure", "task-id": task_id, "result": result}
+                
 
             else:
                 result = "Task not defined in worker"
                 #handle_error(f"Unknown task: {task_name}")
-                return {"status": "failure", "result": "Unknown task."}
+                return {"status": "failure", "result": "Unknown task"}
 
             
             

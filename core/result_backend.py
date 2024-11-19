@@ -48,7 +48,7 @@ class ResultBackend:
                 return {"status": "not_found", "result": None}  # Task not found
             
             data = json.loads(result)  # Deserialize JSON
-            logger.info(f"Retrieved result for task {task_id}: {data}")
+            #logger.info(f"Retrieved result for task {task_id}: {data}")
             return data
         except Exception as e:
             logger.error(f"Failed to retrieve result for task {task_id}: {e}")
@@ -85,7 +85,7 @@ class ResultBackend:
                 return None
 
             task_data = json.loads(task)
-            logger.info(f"Retrieved task for task ID {task_id}: {task_data}")
+            #logger.info(f"Retrieved task for task ID {task_id}: {task_data}")
             return task_data
         except Exception as e:
             logger.error(f"Failed to retrieve task for task ID {task_id}: {e}")

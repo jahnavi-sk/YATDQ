@@ -243,7 +243,15 @@ class Worker:
             task = message.value
             logger.info(f"Consumed message from partition: {self.current_partition}")
             logger.info(f"Received task from partition {self.current_partition}: {task}")
+            # i added this lol
+            process_result = "processing"
+            #self.store_result(task['task-id'], process_result)
+            
+            task_id = task['task-id']
+            self.result_backend.store_task(task_id, process_result)
+            # i ended it lol
             result = self.task_handler.handle_task(task)
+            logger.info("GURL I AM RESULT,",result)
             self.store_result(task['task-id'], result)
 
     def send_heartbeat(self):
