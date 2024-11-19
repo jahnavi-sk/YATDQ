@@ -1,9 +1,6 @@
 # Kafka dependencies
 kafka-python==2.0.2
 
-# Celery dependencies
-celery==5.2.3
-
 # Additional dependencies
 redis==4.0.2  # If using Redis as a result backend
 
