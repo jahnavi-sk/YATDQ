@@ -250,11 +250,12 @@ class Worker:
         """Send periodic heartbeat messages to the heartbeat topic and store them in Redis."""
         while self.running:
             heartbeat_message = {
-                "worker_id": self.worker_id,
-                "status": "alive",
+                "status": "I AM ALIVE BRO",
                 "timestamp": int(time.time()),
                 "last_task_partition": self.current_partition,  # Include last partition info
             }
+
+            
 
             try:
                 # Send heartbeat to Kafka topic
