@@ -36,6 +36,10 @@ class TaskHandler:
                 result = self.add(*args)
             elif task_name == "subtract":
                 result = self.subtract(*args)
+            elif task_name == "multiply":
+                result = self.multiply(*args)
+            elif task_name == "divide":
+                result = self.divide(*args)
             else:
                 handle_error(f"Unknown task: {task_name}")
                 return {"status": "error", "message": "Unknown task."}
@@ -55,7 +59,23 @@ class TaskHandler:
         if len(args) < 2:
             raise ValueError("Subtract requires at least two arguments.")
         return args[0] - sum(args[1:])
+    def multiply(self, *args):
+        """Multiply numbers."""
+        result = 1
+        for arg in args:
+            result *= arg
+        return result
 
+    def divide(self, *args):
+        """Divide numbers."""
+        if len(args) < 2:
+            raise ValueError("Divide requires at least two arguments.")
+        result = args[0]
+        for arg in args[1:]:
+            if arg == 0:
+                raise ValueError("Cannot divide by zero.")
+            result /= arg
+        return result
 # Example usage of TaskHandler
 if __name__ == "__main__":
     handler = TaskHandler()
@@ -73,6 +93,18 @@ if __name__ == "__main__":
         "task": "subtract",
         "args": [10, 5, 2]
     }
+    sample_task_multiply = {
+        "task-id": "multiply-task-1",
+        "task": "multiply",
+        "args": [10, 5, 2]
+    }
+
+    # Sample task for division
+    sample_task_divide = {
+        "task-id": "divide-task-1",
+        "task": "divide",
+        "args": [10, 5, 2]
+    }
 
     # Handling tasks
     result_add = handler.handle_task(sample_task_add)
@@ -80,3 +112,10 @@ if __name__ == "__main__":
 
     result_subtract = handler.handle_task(sample_task_subtract)
     print(f"Result of subtraction task: {result_subtract}")
+
+    result_multiply = handler.handle_task(sample_task_multiply)
+    print(f"Result of multiplication task: {result_multiply}")
+
+    # Handling division task
+    result_divide = handler.handle_task(sample_task_divide)
+    print(f"Result of division task: {result_divide}")

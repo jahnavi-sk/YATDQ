@@ -19,4 +19,4 @@ __all__ = [
 # Optionally, you can define package-level constants or metadata
 __version__ = "1.0.0"
 __author__ = "Your Name"
-__description__ = "A simple task queue using Kafka and Celery."
+__description__ = "A simple task queue using Kafka."
