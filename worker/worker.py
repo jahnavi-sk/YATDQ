@@ -307,7 +307,7 @@ class Worker:
 # Example usage of the Worker class
 if __name__ == "__main__":
     kafka_broker = 'localhost:9092'  # Replace with your Kafka broker address
-    task_topic = 'task_queue'        # Replace with your actual task topic name
+    task_topic = 'task_queue1'        # Replace with your actual task topic name
     heartbeat_topic = 'worker_heartbeat'  # Replace with your heartbeat topic name
     worker_id = 'worker-1'           # Unique identifier for the worker
 

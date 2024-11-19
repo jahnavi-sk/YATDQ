@@ -34,21 +34,32 @@ class TaskHandler:
             # Execute the task based on its name
             if task_name == "add":
                 result = self.add(*args)
+                logger.info(f"Task {task_id} completed successfully with result: {result}")
+                return {"status": "success", "task-id": task_id, "result": result}
             elif task_name == "subtract":
                 result = self.subtract(*args)
+
             elif task_name == "multiply":
                 result = self.multiply(*args)
+                logger.info(f"Task {task_id} completed successfully with result: {result}")
+                return {"status": "success", "task-id": task_id, "result": result}
             elif task_name == "divide":
                 result = self.divide(*args)
-            else:
-                handle_error(f"Unknown task: {task_name}")
-                return {"status": "error", "message": "Unknown task."}
+                logger.info(f"Task {task_id} completed successfully with result: {result}")
+                return {"status": "success", "task-id": task_id, "result": result}
 
-            logger.info(f"Task {task_id} completed successfully with result: {result}")
-            return {"status": "success", "task-id": task_id, "result": result}
+            else:
+                result = "Task not defined in worker"
+                #handle_error(f"Unknown task: {task_name}")
+                return {"status": "failure", "result": "Unknown task."}
+
+            
+            
         except Exception as e:
-            handle_error(f"Error executing task {task_id}: {e}")
-            return {"status": "error", "message": str(e)}
+            #handle_error(f"Error executing task {task_id}: {e}")
+            result = "Task not defined in worker"
+            return {"status": "failure", "result": "Unknown task."}
+            #return {"status": "FAILUREEEEEEEEEEEEEE", "message": str(e)}
 
     def add(self, *args):
         """Add numbers."""

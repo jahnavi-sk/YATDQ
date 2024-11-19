@@ -48,19 +48,23 @@ print("\nFetching task results...")
 all_results = {}
 while submitted_task_ids:
     for task_id in submitted_task_ids[:]:  # Iterate over a copy of the list
-        result = client.result_backend.get_result(task_id)  # Fetch task result
+        result = client.query_status(task_id)  # Fetch task result
         if result is None:  # Skip tasks with no results
             print(f"Task {task_id}: Result not available yet...")
             continue
 
         status = result.get("status")
-        if status in ["success", "failed"]:
+        processing_status = "processing"
+        if status in ["success", "failure"]:
+            print(f"Task {task_id}: status: {processing_status}. Result: Calculating...")
+            time.sleep(2)
             print(f"Task {task_id}: {status}. Result: {result.get('result')}")
             all_results[task_id] = result
             submitted_task_ids.remove(task_id)  # Remove completed task from list
         else:
             print(f"Task {task_id}: {status}...")  # "queued" or "processing"
-
+        #print("Processing task")
+        #time.sleep(2)
     time.sleep(2)  # Polling interval
 
 print("\nFinal Results:")

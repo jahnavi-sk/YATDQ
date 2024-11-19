@@ -74,11 +74,12 @@ class Client:
             }'''
             
     def query_status(self, task_id, timeout=3):
+        print("HELLO WORLD")
         start_time = time.time()
         while True:
             result = self.result_backend.get_result(task_id)
             status = result.get("status")
-
+            print("iM HEREEEE")
             if status =="success":
                 return {
                     "status": status,
@@ -88,22 +89,23 @@ class Client:
                 print(f"Task {task_id} failed. Retrying...")
                 self.result_backend.store_result(task_id, "failed")
                 self.resubmit_task(task_id)
-                
+            elif status == "failure":
+                return {
+                    "status": status,
+                    "result": "None",
+                }
             elif time.time() - start_time > timeout:
                 print(f"Task {task_id} timed out. Retrying...")
                 self.resubmit_task(task_id)
-                
-            
-                
             else:
                 time.sleep(1)  # Poll every second
 
     def resubmit_task(self, task_id):
         task = self.result_backend.get_task(task_id)
-        #print("\nGIRL LOOK AT ME. IM TASK = ",task)
+        print("\nGIRL LOOK AT ME. IM TASK = ",task)
         if task:
             #logger.info(f"Resubmitting task: {task}")
-            #print("IM RE RUNNING")
+            print("IM RE RUNNING")
             print(f"Resubmitting task: {task}")
             #self.result_backend.store_result(task_id, "queued")
             self.kafka_broker.send_message(task)

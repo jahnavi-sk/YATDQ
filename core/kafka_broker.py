@@ -17,7 +17,7 @@ class KafkaBroker:
         
         # Initialize the Kafka consumer for task queue
         self.task_consumer = KafkaConsumer(
-            'task_queue',  # Topic to consume from
+            'task_queue1',  # Topic to consume from
             bootstrap_servers=KAFKA_BROKER_URL,
             value_deserializer=lambda m: json.loads(m.decode('utf-8')),  # Deserialize JSON
             auto_offset_reset='earliest',  # Start from the earliest message
@@ -43,7 +43,7 @@ class KafkaBroker:
         - message: The message to send (should be a dictionary).
         """
         try:
-            self.producer.send('task_queue', message)
+            self.producer.send('task_queue1', message)
             self.producer.flush()  # Ensure all messages are sent
             logger.info(f"Message sent to Kafka: {message}")
         except Exception as e:
