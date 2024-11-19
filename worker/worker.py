@@ -271,9 +271,23 @@ class Worker:
 
     def store_heartbeat_in_redis(self, heartbeat_message):
         """Store the heartbeat message in Redis."""
+        '''
         redis_key = f"worker_heartbeat:{self.worker_id}"
         self.redis_client.set(redis_key, json.dumps(heartbeat_message))
         logger.info(f"Heartbeat stored in Redis for worker {self.worker_id}: {heartbeat_message}")
+        '''
+        
+        
+        partition = self.current_partition if self.current_partition is not None else "unknown"
+        timestamp = heartbeat_message["timestamp"]
+        redis_key = f"partition:{partition}:timestamp:{timestamp}"
+
+    # Store the heartbeat message
+        self.redis_client.set(redis_key, json.dumps(heartbeat_message))
+        logger.info(f"Heartbeat stored in Redis with key {redis_key}: {heartbeat_message}")
+    
+        
+    
 
     def store_result(self, task_id, result):
         """Store the result of the task in the backend (e.g., Redis)."""
