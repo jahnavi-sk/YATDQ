@@ -6,8 +6,8 @@
     },
     {
         "task-id": "2",
-        "task": "subtract",
-        "args": [10, 4]
+        "task": "divide",
+        "args": [10, 0]
     },
     {
         "task-id": "3",
@@ -36,7 +36,7 @@
     },
     {
         "task-id": "8",
-        "task": "add",
+        "task": "multiply",
         "args": [9, 1]
     },
     {
@@ -46,7 +46,7 @@
     },
     {
         "task-id": "10",
-        "task": "subtract",
+        "task": "divide",
         "args": [7, 14]
     }
 ]

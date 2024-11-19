@@ -38,6 +38,8 @@ class TaskHandler:
                 return {"status": "success", "task-id": task_id, "result": result}
             elif task_name == "subtract":
                 result = self.subtract(*args)
+                logger.info(f"Task {task_id} completed successfully with result: {result}")
+                return {"status": "success", "task-id": task_id, "result": result}
 
             elif task_name == "multiply":
                 result = self.multiply(*args)
@@ -84,8 +86,11 @@ class TaskHandler:
         result = args[0]
         for arg in args[1:]:
             if arg == 0:
-                raise ValueError("Cannot divide by zero.")
-            result /= arg
+                #raise ValueError("Cannot divide by zero.")
+                result = "Can't divide by 0"
+                return result
+            else:
+                result /= arg
         return result
 # Example usage of TaskHandler
 if __name__ == "__main__":

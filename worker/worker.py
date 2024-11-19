@@ -255,7 +255,7 @@ class Worker:
                 "last_task_partition": self.current_partition,  # Include last partition info
             }
 
-            
+      
 
             try:
                 # Send heartbeat to Kafka topic
